@@ -3,31 +3,35 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 )
-
-// UserService ...
-type UserService struct {
-	Client *Client
-}
 
 // User ...
 type User struct {
+	Client *Client
+}
+
+// UserBody ...
+type UserBody struct {
 	ID    int    `json:"id,omitempty"`
-	First string `json:"first"`
-	Last  string `json:"last"`
-	Role  string `json:"role"`
+	First string `json:"first,omitempty"`
+	Last  string `json:"last,omitempty"`
+	Role  string `json:"role,omitempty"`
 	Key   string `json:"api_key,omitempty"`
 }
 
-// Create ...
-func (s *UserService) Create(u User) (*Response, error) {
+// Service ...
+func (s *User) Service(u UserBody, method string) (*Response, error) {
+	if !s.Client.Methods[method] {
+		return nil, fmt.Errorf("%s is not a valid HTTP method for the user api", method)
+	}
 	data, err := json.Marshal(u)
 	if err != nil {
 		return nil, err
 	}
 	body := bytes.NewReader(data)
 	resp := new(Response)
-	if err = s.Client.Post("user", body, resp); err != nil {
+	if err = s.Client.Request(method, "user", body, resp); err != nil {
 		return nil, err
 	}
 	return resp, nil

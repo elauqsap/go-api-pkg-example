@@ -16,12 +16,6 @@ const (
 
 	// HTTP Headers
 	userAgentHeader = "User-Agent"
-
-	// HTTP Methods
-	get    = "GET"
-	post   = "POST"
-	put    = "PUT"
-	delete = "DELETE"
 )
 
 // A Client manages communication with the API
@@ -36,7 +30,10 @@ type Client struct {
 	UserAgent string
 
 	// Services used for talking to different parts of the API
-	User *UserService
+	User *User
+
+	// Methods are the valid CRUD opertaions
+	Methods map[string]bool
 }
 
 // Response ...
@@ -56,7 +53,13 @@ func NewClient(client *http.Client, baseURL *url.URL) *Client {
 	}
 
 	c := &Client{Client: client, BaseURL: baseURL, UserAgent: userAgent}
-	c.User = &UserService{c}
+	c.Methods = map[string]bool{
+		http.MethodGet:    true,
+		http.MethodPost:   true,
+		http.MethodPut:    true,
+		http.MethodDelete: true,
+	}
+	c.User = &User{c}
 	return c
 }
 
@@ -109,21 +112,9 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 	return err
 }
 
-// Get performs an HTTP GET request for the calling service using the Client
-func (c *Client) Get(service string, body io.Reader, resp interface{}) error {
-	req, err := c.NewRequest(get, c.BaseURL.String()+service, body)
-	if err != nil {
-		return err
-	}
-	if err = c.Do(req, resp); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Post performs an HTTP POST request for the calling service using the Client
-func (c *Client) Post(service string, body io.Reader, resp interface{}) error {
-	req, err := c.NewRequest(post, c.BaseURL.String()+service, body)
+// Request performs an HTTP GET request for the calling service using the Client
+func (c *Client) Request(method string, service string, body io.Reader, resp interface{}) error {
+	req, err := c.NewRequest(method, c.BaseURL.String()+service, body)
 	if err != nil {
 		return err
 	}
