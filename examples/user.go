@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,26 +12,39 @@ import (
 func main() {
 	proxy, _ := url.Parse("http://localhost:8080")
 	c := example.NewClient(&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy)}}, nil)
+	// create a user
 	u := example.UserBody{
-		First: "Test",
-		Last:  "User",
-		Role:  "user",
+		Login:    "example@test.com",
+		Password: "example",
 	}
-	resp, err := c.User.Service(u, http.MethodPost)
+	data, _ := json.Marshal(u)
+	resp, err := c.User.Create(data)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 	} else {
-		log.Printf("%v", resp)
+		log.Printf("%#v", resp)
 	}
-	u = example.UserBody{
-		ID: 1,
-	}
-
-	// FIXME: issue comes from the echo router not allowing a body in the GET method
-	resp, err = c.User.Service(u, http.MethodGet)
+	// return the user from the db
+	resp, err = c.User.Read(1)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 	} else {
-		log.Printf("%v", resp)
+		log.Printf("%#v", resp)
+	}
+	// update the user in the db
+	u.Password = "updated"
+	data, _ = json.Marshal(u)
+	resp, err = c.User.Update(1, data)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+	} else {
+		log.Printf("%#v", resp)
+	}
+	// delete the user from the db
+	resp, err = c.User.Delete(1)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+	} else {
+		log.Printf("%#v", resp)
 	}
 }

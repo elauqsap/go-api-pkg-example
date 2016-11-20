@@ -12,7 +12,7 @@ const (
 	// Basic client API configuration
 	libraryVersion = "0.1"
 	defaultBaseURL = "http://127.0.0.1:8081/api/v1/"
-	userAgent      = "go-client" + libraryVersion
+	userAgent      = "go-client/" + libraryVersion
 
 	// HTTP Headers
 	userAgentHeader = "User-Agent"
@@ -31,18 +31,15 @@ type Client struct {
 
 	// Services used for talking to different parts of the API
 	User *User
-
-	// Methods are the valid CRUD opertaions
-	Methods map[string]bool
 }
 
-// Response ...
+// Response models the JSON response from API services
 type Response struct {
 	Code    int         `json:"code"`
 	Message interface{} `json:"message"`
 }
 
-// NewClient ...
+// NewClient creates a new client that can use the API services
 func NewClient(client *http.Client, baseURL *url.URL) *Client {
 	if client == nil {
 		client = http.DefaultClient
@@ -53,17 +50,11 @@ func NewClient(client *http.Client, baseURL *url.URL) *Client {
 	}
 
 	c := &Client{Client: client, BaseURL: baseURL, UserAgent: userAgent}
-	c.Methods = map[string]bool{
-		http.MethodGet:    true,
-		http.MethodPost:   true,
-		http.MethodPut:    true,
-		http.MethodDelete: true,
-	}
 	c.User = &User{c}
 	return c
 }
 
-// NewRequest ...
+// NewRequest creates an HTTP request for the client to make
 func (c *Client) NewRequest(method, urlStr string, body io.Reader) (*http.Request, error) {
 	rel, err := url.Parse(urlStr)
 	if err != nil {
@@ -81,12 +72,14 @@ func (c *Client) NewRequest(method, urlStr string, body io.Reader) (*http.Reques
 		req.Header.Add(userAgentHeader, c.UserAgent)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	return req, nil
 }
 
-// Do ...
+// Do performs the request and determines the response
 func (c *Client) Do(req *http.Request, v interface{}) error {
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -113,8 +106,8 @@ func (c *Client) Do(req *http.Request, v interface{}) error {
 }
 
 // Request performs an HTTP GET request for the calling service using the Client
-func (c *Client) Request(method string, service string, body io.Reader, resp interface{}) error {
-	req, err := c.NewRequest(method, c.BaseURL.String()+service, body)
+func (c *Client) Request(method string, rest string, body io.Reader, resp interface{}) error {
+	req, err := c.NewRequest(method, c.BaseURL.String()+rest, body)
 	if err != nil {
 		return err
 	}
